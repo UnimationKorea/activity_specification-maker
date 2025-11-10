@@ -157,13 +157,13 @@
 
     <!-- Activities Builder -->
     <section class="card">
-      <div class="flex items-start justify-between">
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <h2 class="text-lg font-semibold">Activities (액티비티 추가)</h2>
-        <div class="flex gap-2">
-          <button id="btnAddChoice" class="btn btn-secondary">+ 4지선다</button>
-          <button id="btnAddDrag" class="btn btn-secondary">+ 드래그드랍</button>
-          <button id="btnAddLine" class="btn btn-secondary">+ 선긋기</button>
-          <button id="btnAddSpeech" class="btn btn-secondary">+ 음성인식</button>
+        <div class="flex flex-wrap gap-2">
+          <button id="btnAddChoice" class="btn btn-secondary" aria-label="4지선다 액티비티 추가">+ 4지선다</button>
+          <button id="btnAddDrag" class="btn btn-secondary" aria-label="드래그드랍 액티비티 추가">+ 드래그드랍</button>
+          <button id="btnAddLine" class="btn btn-secondary" aria-label="선긋기 액티비티 추가">+ 선긋기</button>
+          <button id="btnAddSpeech" class="btn btn-secondary" aria-label="음성인식 액티비티 추가">+ 음성인식</button>
         </div>
       </div>
       <p class="text-sm text-gray-500 mt-2">각 카드의 필드를 채운 뒤, 아래의 "XLSX 생성"을 클릭하세요. 예시 데이터가 자동으로 채워집니다(필요 시 수정).</p>
@@ -173,15 +173,17 @@
 
     <!-- Export & Advanced -->
     <section class="card">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Export</h2>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Export</h2>
+        </div>
         <div class="flex flex-wrap gap-2 items-center">
-          <input id="fileName" class="input w-64" value="Activity_Specification_Pack.xlsx" />
-          <button id="btnExport" class="btn btn-primary">XLSX 생성 + 자산 CSV 동시 출력</button>
-          <input id="locImport" type="file" accept=".csv,.json" class="hidden" />
-          <button id="btnLocImport" class="btn btn-secondary">Loc Import (CSV/JSON)</button>
-          <button id="btnLocExport" class="btn btn-secondary">Loc Export (CSV/JSON)</button>
-          <button id="btnRunTests" class="btn btn-secondary">Run Tests</button>
+          <input id="fileName" class="input w-full md:w-64" value="Activity_Specification_Pack.xlsx" placeholder="파일명 입력" aria-label="출력 파일명"/>
+          <button id="btnExport" class="btn btn-primary" aria-label="XLSX 스펙 문서 생성">📥 XLSX 생성 + 자산 CSV 동시 출력</button>
+          <input id="locImport" type="file" accept=".csv,.json" class="hidden" aria-label="Localization 파일 선택"/>
+          <button id="btnLocImport" class="btn btn-secondary" aria-label="Localization 파일 가져오기">📂 Loc Import</button>
+          <button id="btnLocExport" class="btn btn-secondary" aria-label="Localization 파일 내보내기">💾 Loc Export</button>
+          <button id="btnRunTests" class="btn btn-secondary" aria-label="테스트 실행">🧪 Run Tests</button>
         </div>
       </div>
       <details class="mt-4">
@@ -375,7 +377,11 @@
       if(type==='DragDrop') extra.appendChild(buildDragExtra());
       if(type==='LineMatch') extra.appendChild(buildLineExtra());
       if(type==='Speech') extra.appendChild(buildSpeechExtra());
-      $('.btnDel', card).addEventListener('click', ()=>card.remove());
+      $('.btnDel', card).addEventListener('click', ()=>{
+        if(confirm('이 액티비티 카드를 삭제하시겠습니까?')) {
+          card.remove();
+        }
+      });
       cardsEl.appendChild(card);
     }
 
