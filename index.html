@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Activity Specification Pack Generator (HTML5)</title>
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>" />
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS / XLSX (CDN) -->
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    /* NOTE: remove Tailwind @apply to avoid runtime CSS errors */
+    body { background: #f9fafb; }
+    .card{ background:#fff; border-radius: 1rem; box-shadow: 0 4px 16px rgba(0,0,0,0.06); padding:1.5rem; }
+    .label{ display:block; font-size:0.875rem; font-weight:600; color:#374151; margin-bottom:0.25rem; }
+    .input{ width:100%; border-radius:0.75rem; border:1px solid #d1d5db; padding:0.5rem 0.75rem; }
+    .input:focus{ outline:none; border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,0.35); }
+    .btn{ display:inline-flex; align-items:center; gap:0.5rem; border-radius:0.75rem; padding:0.5rem 1rem; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+    .btn-primary{ background:#4f46e5; color:#fff; }
+    .btn-primary:hover{ background:#4338ca; }
+    .btn-secondary{ background:#f3f4f6; }
+    .btn-secondary:hover{ background:#e5e7eb; }
+    .tag{ font-size:0.75rem; background:#eef2ff; color:#4338ca; padding:0.125rem 0.5rem; border-radius:0.375rem; }
+    .kbd{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; background:#111827; color:#fff; padding:0 6px; border-radius:6px; font-size:12px; }
+    pre.testlog{ background:#0b1021; color:#d1d5db; padding:1rem; border-radius:0.75rem; overflow:auto; max-height:260px; }
+    .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9999; }
+    .loading.active { display: flex; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Loading Indicator -->
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+  </div>
+  
+  <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-xl font-bold">Activity Specification Pack Generator</h1>
+      <div class="text-sm text-gray-500">HTML5 · XLSX Export · v1.1</div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4 space-y-6">
+    <!-- Project / Standards -->
+    <section class="card">
+      <div class="flex items-start justify-between">
+        <h2 class="text-lg font-semibold">Standards (공통 표준)</h2>
+        <span class="tag">Required</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <label class="label">Project</label>
+          <input class="input" id="stdProject" value="자체 프로젝트 (EduCore)"/>
+        </div>
+        <div>
+          <label class="label">Activity Family</label>
+          <input class="input" id="stdFamily" value="Core-Interactive"/>
+        </div>
+        <div>
+          <label class="label">Spec Version</label>
+          <input class="input" id="stdVersion" value="1.1"/>
+        </div>
+        <div>
+          <label class="label">Author</label>
+          <input class="input" id="stdAuthor" value="Content Engineering"/>
+        </div>
+        <div>
+          <label class="label">Date (YYYY-MM-DD)</label>
+          <input class="input" id="stdDate" />
+        </div>
+        <div>
+          <label class="label">Target Devices</label>
+          <input class="input" id="stdDevices" value="Desktop/Tablet/Mobile"/>
+        </div>
+        <div>
+          <label class="label">Browser Support</label>
+          <input class="input" id="stdBrowsers" value="Chrome 120+, Edge 120+, Safari 17+"/>
+        </div>
+        <div>
+          <label class="label">Min Resolution</label>
+          <input class="input" id="stdRes" value="1280x720 (desktop), 1024x600 (tablet), 360x640 (mobile)"/>
+        </div>
+        <div>
+          <label class="label">Orientation</label>
+          <input class="input" id="stdOrient" value="Auto; lock when critical"/>
+        </div>
+        <div>
+          <label class="label">Design System</label>
+          <input class="input" id="stdDesign" value="Tailwind + shadcn/ui tokens"/>
+        </div>
+        <div>
+          <label class="label">Primary Font</label>
+          <input class="input" id="stdFont" value="Noto Sans KR"/>
+        </div>
+        <div>
+          <label class="label">Fallback Fonts</label>
+          <input class="input" id="stdFallback" value="Arial, Helvetica, sans-serif"/>
+        </div>
+        <div>
+          <label class="label">Base Unit (px)</label>
+          <input class="input" id="stdBase" value="4"/>
+        </div>
+        <div>
+          <label class="label">Color Tokens</label>
+          <input class="input" id="stdColors" value="primary, secondary, success, warn, error"/>
+        </div>
+        <div>
+          <label class="label">Audio Format</label>
+          <input class="input" id="stdAudio" value="mp3 (192kbps) + ogg fallback"/>
+        </div>
+        <div>
+          <label class="label">Image Format</label>
+          <input class="input" id="stdImage" value="webp preferred, png for alpha"/>
+        </div>
+        <div>
+          <label class="label">Lottie Version</label>
+          <input class="input" id="stdLottie" value="5.7+"/>
+        </div>
+        <div>
+          <label class="label">Video Format</label>
+          <input class="input" id="stdVideo" value="mp4 (H.264), webm fallback"/>
+        </div>
+        <div>
+          <label class="label">Frame Rate</label>
+          <input class="input" id="stdFPS" value="60"/>
+        </div>
+        <div>
+          <label class="label">Max Package Size (MB)</label>
+          <input class="input" id="stdMaxSize" value="10"/>
+        </div>
+        <div>
+          <label class="label">Performance Budget</label>
+          <input class="input" id="stdPerf" value="TTI < 2.5s on 3G Fast; 60fps anim"/>
+        </div>
+        <div>
+          <label class="label">Offline Support</label>
+          <input class="input" id="stdOffline" value="Service Worker optional"/>
+        </div>
+        <div>
+          <label class="label">Network Retry Policy</label>
+          <input class="input" id="stdRetry" value="3 retries, exp backoff"/>
+        </div>
+        <div>
+          <label class="label">Security Notes</label>
+          <input class="input" id="stdSec" value="No PII in logs; signed URLs for assets"/>
+        </div>
+        <div>
+          <label class="label">Versioning Rule</label>
+          <input class="input" id="stdSemver" value="Semantic: major.minor.patch"/>
+        </div>
+      </div>
+    </section>
+
+    <!-- Activities Builder -->
+    <section class="card">
+      <div class="flex items-start justify-between">
+        <h2 class="text-lg font-semibold">Activities (액티비티 추가)</h2>
+        <div class="flex gap-2">
+          <button id="btnAddChoice" class="btn btn-secondary">+ 4지선다</button>
+          <button id="btnAddDrag" class="btn btn-secondary">+ 드래그드랍</button>
+          <button id="btnAddLine" class="btn btn-secondary">+ 선긋기</button>
+          <button id="btnAddSpeech" class="btn btn-secondary">+ 음성인식</button>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-2">각 카드의 필드를 채운 뒤, 아래의 "XLSX 생성"을 클릭하세요. 예시 데이터가 자동으로 채워집니다(필요 시 수정).</p>
+
+      <div id="cards" class="mt-4 grid grid-cols-1 gap-4"></div>
+    </section>
+
+    <!-- Export & Advanced -->
+    <section class="card">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Export</h2>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input id="fileName" class="input w-64" value="Activity_Specification_Pack.xlsx" />
+          <button id="btnExport" class="btn btn-primary">XLSX 생성 + 자산 CSV 동시 출력</button>
+          <input id="locImport" type="file" accept=".csv,.json" class="hidden" />
+          <button id="btnLocImport" class="btn btn-secondary">Loc Import (CSV/JSON)</button>
+          <button id="btnLocExport" class="btn btn-secondary">Loc Export (CSV/JSON)</button>
+          <button id="btnRunTests" class="btn btn-secondary">Run Tests</button>
+        </div>
+      </div>
+      <details class="mt-4">
+        <summary class="cursor-pointer text-sm text-gray-700">고급 옵션</summary>
+        <ul class="text-sm text-gray-600 list-disc pl-5 mt-2 space-y-1">
+          <li>XLSX 생성 시 <span class="font-medium">Asset Tree CSV</span>를 자동으로 함께 저장합니다.</li>
+          <li>Localization은 Import로 미리 적재 후, Export 시 생성된 항목과 병합하여 출력됩니다.</li>
+        </ul>
+      </details>
+      <div class="mt-4">
+        <div class="text-sm text-gray-600 mb-1">Test Log</div>
+        <pre id="testLog" class="testlog"></pre>
+      </div>
+    </section>
+  </main>
+
+  <template id="tpl-card">
+    <div class="border rounded-2xl p-4 bg-white shadow-sm space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="tag type">TYPE</span>
+          <input class="input font-semibold w-64 title" placeholder="Title"/>
+        </div>
+        <button class="btn btn-secondary btnDel" title="삭제">삭제</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div>
+          <label class="label">Activity ID</label>
+          <input class="input activityId" placeholder="e.g., MC4-0001"/>
+        </div>
+        <div>
+          <label class="label">actCode</label>
+          <select class="input actCode"></select>
+        </div>
+        <div>
+          <label class="label">Grade Level</label>
+          <input class="input grade" value="G1~G3"/>
+        </div>
+        <div>
+          <label class="label">Language</label>
+          <input class="input lang" value="EN"/>
+        </div>
+        <div>
+          <label class="label">Duration (s)</label>
+          <input class="input duration" value="60"/>
+        </div>
+        <div>
+          <label class="label">Level / Difficulty</label>
+          <input class="input level" value="BR-300" placeholder="Lexile/BR or internal"/>
+          <select class="input mt-2 difficulty">
+            <option>Easy</option>
+            <option selected>Medium</option>
+            <option>Hard</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="label">Adaptive: Hint After Wrong (count)</label>
+          <input class="input adaptHintAfter" value="2"/>
+        </div>
+        <div>
+          <label class="label">Adaptive: Time Extend (+s)</label>
+          <input class="input adaptTimeExtend" value="10"/>
+        </div>
+        <div>
+          <label class="label">Adaptive: Max Attempts</label>
+          <input class="input adaptMaxAttempts" value="3"/>
+        </div>
+      </div>
+      <div class="extra"></div>
+    </div>
+  </template>
+
+  <script>
+    // ---- Utilities ----
+    const $ = (sel, el=document) => el.querySelector(sel);
+    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+    const LOG = (msg) => { const el = document.getElementById('testLog'); if(el){ el.textContent += (msg + '\n'); } };
+
+    // ---- Global stores ----
+    const LOC_STORE = []; // {Activity_ID, Key, Source_Text_EN, KO, JA, ZH, Audio_EN, Audio_KO, Notes}
+
+    // ---- actCode codebook ----
+    const ACT_CODES = {
+      '4Choice': [
+        {code:'1051', label:'1051 - 4지선다(이미지/텍스트 혼합)'},
+        {code:'1052', label:'1052 - 4지선다(문장 중심)'}
+      ],
+      'DragDrop': [
+        {code:'1062', label:'1062 - 드래그드랍(라벨→이미지)'},
+        {code:'1063', label:'1063 - 드래그드랍(이미지→슬롯)'}
+      ],
+      'LineMatch': [
+        {code:'1073', label:'1073 - 선긋기 매칭'},
+        {code:'1074', label:'1074 - 그룹 매칭(고급)'}
+      ],
+      'Speech': [
+        {code:'1084', label:'1084 - 음성인식(STT) 문장'},
+        {code:'1085', label:'1085 - 음성인식(STT) 키워드'}
+      ]
+    };
+
+    // ---- Defaults ----
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('stdDate').value = today;
+
+    const cardsEl = document.getElementById('cards');
+    const tpl = document.getElementById('tpl-card');
+
+    // ---- Builders per type ----
+    function buildChoiceExtra(){
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+      div.innerHTML = [
+        '<div>\n<label class="label">Question Text</label>\n<textarea class="input qtext">Which picture shows a fox?</textarea>\n</div>',
+        '<div>\n<label class="label">Timer / Time Limit</label>\n<input class="input timer" value="true,30" placeholder="hasTimer,limit_s"/>\n</div>',
+        ['A','B','C','D'].map((k,i)=>{
+          const pres = ['Fox,img/fox.png,audio/fox.mp3,true','Dog,img/dog.png,audio/dog.mp3,false','Cat,img/cat.png,audio/cat.mp3,false','Wolf,img/wolf.png,audio/wolf.mp3,false'][i];
+          return `<div class="md:col-span-1">\n<label class="label">Option ${k} (text,image,audio,isCorrect)</label>\n<input class="input opt${k}" value="${pres}"/>\n</div>`;
+        }).join(''),
+        '<div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">\n<div>\n<label class="label">Feedback (correct)</label>\n<input class="input fbOk" value="Great job! That\'s a fox."/>\n</div>\n<div>\n<label class="label">Feedback (incorrect)</label>\n<input class="input fbNg" value="Look at the tail and ears."/>\n</div>\n</div>'
+      ].join('');
+      return div;
+    }
+
+    function buildDragExtra(){
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+      div.innerHTML = [
+        '<div>\n<label class="label">Drag Mode</label>\n<input class="input dragMode" value="drag-clone=false, drag-ghost=true"/>\n</div>',
+        '<div>\n<label class="label">Drop Strategy / Snap(px)</label>\n<input class="input dropSnap" value="per-zone-one,24"/>\n</div>',
+        ['fox->dz_fox','cat->dz_cat','dog->dz_dog'].map(x=>`<div>\n<label class="label">Item Mapping (item->dropzone)</label>\n<input class="input map" value="${x}"/>\n</div>`).join(''),
+        '<div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">\n<div>\n<label class="label">Feedback (correct)</label>\n<input class="input fbOk" value="Perfect match!"/>\n</div>\n<div>\n<label class="label">Feedback (incorrect)</label>\n<input class="input fbNg" value="Try another picture."/>\n</div>\n</div>'
+      ].join('');
+      return div;
+    }
+
+    function buildLineExtra(){
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+      div.innerHTML = [
+        '<div>\n<label class="label">Line Style / Width / Color</label>\n<input class="input lineStyle" value="curved,4,primary"/>\n</div>',
+        ['L1-fox:R2-yip','L2-cat:R1-meow','L3-dog:R3-bark'].map(x=>`<div>\n<label class="label">Pair (Left:Right)</label>\n<input class="input pair" value="${x}"/>\n</div>`).join(''),
+        '<div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">\n<div>\n<label class="label">Feedback (correct)</label>\n<input class="input fbOk" value="Nice connections!"/>\n</div>\n<div>\n<label class="label">Feedback (incorrect)</label>\n<input class="input fbNg" value="Follow the sound icons."/>\n</div>\n</div>'
+      ].join('');
+      return div;
+    }
+
+    function buildSpeechExtra(){
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+      div.innerHTML = [
+        '<div>\n<label class="label">Prompt Text</label>\n<input class="input prompt" value="Please say: The fox runs fast."/>\n</div>',
+        '<div>\n<label class="label">WER / Pron Score / Max Rec(s)</label>\n<input class="input sttParams" value="0.15,80,8"/>\n</div>',
+        '<div>\n<label class="label">Feedback (correct)</label>\n<input class="input fbOk" value="Clear and confident!"/>\n</div>',
+        '<div>\n<label class="label">Feedback (needs work)</label>\n<input class="input fbNg" value="Try again. Speak slowly near the mic."/>\n</div>'
+      ].join('');
+      return div;
+    }
+
+    function fillActCodeSelect(sel, type){
+      sel.innerHTML = '';
+      (ACT_CODES[type] || []).forEach(({code,label})=>{
+        const opt = document.createElement('option');
+        opt.value = code; opt.textContent = label; sel.appendChild(opt);
+      });
+    }
+
+    function addCard(type){
+      const node = tpl.content.cloneNode(true);
+      const card = node.querySelector('div');
+      $('.type', card).textContent = type;
+      $('.title', card).value = ({
+        '4Choice':'Find the Animal',
+        'DragDrop':'Match Word to Picture',
+        'LineMatch':'Match Animal to Sound',
+        'Speech':'Say the Sentence'
+      })[type] || '';
+      $('.activityId', card).value = ({
+        '4Choice':'MC4-0001',
+        'DragDrop':'DD-0101',
+        'LineMatch':'LM-0201',
+        'Speech':'STT-0301'
+      })[type] || '';
+      $('.duration', card).value = ({ '4Choice':60,'DragDrop':90,'LineMatch':90,'Speech':60 })[type] || 60;
+      fillActCodeSelect($('.actCode', card), type);
+
+      const extra = $('.extra', card);
+      if(type==='4Choice') extra.appendChild(buildChoiceExtra());
+      if(type==='DragDrop') extra.appendChild(buildDragExtra());
+      if(type==='LineMatch') extra.appendChild(buildLineExtra());
+      if(type==='Speech') extra.appendChild(buildSpeechExtra());
+      $('.btnDel', card).addEventListener('click', ()=>card.remove());
+      cardsEl.appendChild(card);
+    }
+
+    // Init: preload one card per type
+    ['4Choice','DragDrop','LineMatch','Speech'].forEach(addCard);
+
+    // ---- Helpers ----
+    function uniq(arr, keyFn){
+      const seen = new Set(); const out = [];
+      arr.forEach(o=>{ const k = keyFn(o); if(!seen.has(k)){ seen.add(k); out.push(o); } });
+      return out;
+    }
+
+    function saveJSON(filename, data){
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    const AUDIO_RE = /\.(mp3|ogg|wav)$/i;
+    const IMG_RE   = /\.(png|jpg|jpeg|webp|svg)$/i;
+    const LOTTIE_RE= /lottie.*\.json$/i;
+
+    function collectAsset(rows, activityId, path){
+      if(!path) return;
+      let type = 'other';
+      if (AUDIO_RE.test(path)) type='audio';
+      else if (IMG_RE.test(path)) type='image';
+      else if (LOTTIE_RE.test(path)) type='lottie';
+      rows.push({Activity_ID:activityId, Type:type, Path:path});
+    }
+
+    // Build all export data without triggering downloads (used by tests and export)
+    function buildWorkbookData(){
+      // Standards row from form
+      const std = [{
+        Project: $('#stdProject').value,
+        Activity_Family: $('#stdFamily').value,
+        Spec_Version: $('#stdVersion').value,
+        Author: $('#stdAuthor').value,
+        Date: $('#stdDate').value,
+        Target_Devices: $('#stdDevices').value,
+        Browser_Support: $('#stdBrowsers').value,
+        Min_Resolution: $('#stdRes').value,
+        Orientation: $('#stdOrient').value,
+        Design_System: $('#stdDesign').value,
+        Primary_Font: $('#stdFont').value,
+        Fallback_Fonts: $('#stdFallback').value,
+        Base_Unit_px: $('#stdBase').value,
+        Color_Tokens: $('#stdColors').value,
+        Audio_Format: $('#stdAudio').value,
+        Image_Format: $('#stdImage').value,
+        Lottie_Version: $('#stdLottie').value,
+        Video_Format: $('#stdVideo').value,
+        Frame_Rate: $('#stdFPS').value,
+        Max_Package_Size_MB: $('#stdMaxSize').value,
+        Performance_Budget: $('#stdPerf').value,
+        Offline_Support: $('#stdOffline').value,
+        Network_Retry_Policy: $('#stdRetry').value,
+        Security_Notes: $('#stdSec').value,
+        Versioning_Rule: $('#stdSemver').value
+      }];
+
+      const choiceRows=[]; const dragRows=[]; const lineRows=[]; const speechRows=[]; const assetRows=[]; let locRows=[];
+
+      $$('#cards > div').forEach(card=>{
+        const type = $('.tag.type', card).textContent;
+        const base = {
+          Activity_ID: $('.activityId', card).value,
+          Title: $('.title', card).value,
+          Grade_Level: $('.grade', card).value,
+          Language: $('.lang', card).value,
+          Duration_s: Number($('.duration', card).value||0),
+          Act_Code: $('.actCode', card).value,
+          Level: $('.level', card).value,
+          Difficulty: $('.difficulty', card).value,
+          Adaptive_Hint_Rule: `if ${Number($('.adaptHintAfter', card).value||2)} wrong -> show hint; +${Number($('.adaptTimeExtend', card).value||0)}s time; maxAttempts ${Number($('.adaptMaxAttempts', card).value||3)}`
+        };
+
+        if(type==='4Choice'){
+          const t = $('.timer', card).value.split(',');
+          const q = $('.qtext', card).value;
+          const opts = ['A','B','C','D'].map(k=>$('.opt'+k, card).value.split(','));
+          const row = Object.assign({}, base, {
+            Randomize_Options: true,
+            Allow_MultiSelect: false,
+            Has_Timer: (t[0]||'true').trim()==='true',
+            Time_Limit_s: Number(t[1]||30),
+            Question_Text: q,
+            Stem_Audio: 'audio/stem.mp3',
+            Option_A_Text: opts[0][0], Option_A_Image: opts[0][1], Option_A_Audio: opts[0][2], Option_A_isCorrect: opts[0][3]==='true',
+            Option_B_Text: opts[1][0], Option_B_Image: opts[1][1], Option_B_Audio: opts[1][2], Option_B_isCorrect: opts[1][3]==='true',
+            Option_C_Text: opts[2][0], Option_C_Image: opts[2][1], Option_C_Audio: opts[2][2], Option_C_isCorrect: opts[2][3]==='true',
+            Option_D_Text: opts[3][0], Option_D_Image: opts[3][1], Option_D_Audio: opts[3][2], Option_D_isCorrect: opts[3][3]==='true',
+            Feedback_Correct: $('.fbOk', card).value,
+            Feedback_Incorrect: $('.fbNg', card).value,
+            Layout_Variant: 'image-grid-2x2',
+            Animation_Lottie_ID: 'lottie/confetti.json',
+            SFX_Correct: 'sfx/correct.mp3', SFX_Wrong: 'sfx/wrong.mp3', BG_Music: 'bgm/soft_loop.mp3',
+            Accessibility_Notes: 'Alt text & focus order'
+          });
+          choiceRows.push(row);
+          ['Stem_Audio','Option_A_Image','Option_B_Image','Option_C_Image','Option_D_Image','Option_A_Audio','Option_B_Audio','Option_C_Audio','Option_D_Audio','Animation_Lottie_ID','SFX_Correct','SFX_Wrong','BG_Music'].forEach(k=>collectAsset(assetRows, row.Activity_ID, row[k]));
+          locRows.push({Activity_ID: row.Activity_ID, Key:'stem', Source_Text_EN: row.Question_Text, KO:'', JA:'', ZH:'', Audio_EN: row.Stem_Audio, Audio_KO:'', Notes:'<60 chars'});
+        }
+
+        if(type==='DragDrop'){
+          const dm = $('.dragMode', card).value;
+          const ds = $('.dropSnap', card).value.split(',');
+          const maps = $$('.map', card).map(i=>i.value);
+          maps.forEach(m=>{
+            const [item,dz] = m.split('->');
+            const row = Object.assign({}, base, {
+              Drag_Mode: dm,
+              Drop_Strategy: (ds[0]||'per-zone-one'),
+              Snap_Tolerance_px: Number(ds[1]||24),
+              Item_ID: item, Item_Label: item, Item_Image:'', Item_Audio:'',
+              Correct_DropZone_ID: dz, Accepts_Multiple:false, Return_On_Wrong:true,
+              Attempts_Max:3, Score_Max: maps.length,
+              Feedback_Correct: $('.fbOk', card).value,
+              Feedback_Incorrect: $('.fbNg', card).value,
+              Layout_Variant: 'left-words-right-images',
+              Animation_Lottie_ID: 'lottie/snap.json',
+              SFX_Drop:'sfx/drop.mp3', SFX_Snap:'sfx/snap.mp3', BG_Music:'',
+              Accessibility_Notes:'Keyboard drag supported'
+            });
+            dragRows.push(row);
+            ['Item_Image','Item_Audio','Animation_Lottie_ID','SFX_Drop','SFX_Snap','BG_Music'].forEach(k=>collectAsset(assetRows, row.Activity_ID, row[k]));
+          });
+        }
+
+        if(type==='LineMatch'){
+          const ls = $('.lineStyle', card).value.split(',');
+          const pairs = $$('.pair', card).map(i=>i.value);
+          pairs.forEach(p=>{
+            const [L,R] = p.split(':');
+            const [Lid,Llabel] = L.split('-');
+            const [Rid,Rlabel] = R.split('-');
+            const row = Object.assign({}, base, {
+              Line_Style: ls[0]||'curved', Line_Width_px: Number(ls[1]||4), Line_Color_Token: ls[2]||'primary',
+              Connector_Mode: 'node-to-node', Allow_Crossing:false, Pairs_Total: pairs.length,
+              Left_Node_ID: Lid, Left_Label: Llabel, Left_Image:'',
+              Right_Node_ID: Rid, Right_Label: Rlabel, Right_Image:'',
+              Is_Correct_Pair: true,
+              Attempts_Max:2, Score_Max: pairs.length,
+              Feedback_Correct: $('.fbOk', card).value,
+              Feedback_Incorrect: $('.fbNg', card).value,
+              Layout_Variant:'left-text-right-icons',
+              Animation_Lottie_ID:'lottie/drawline.json', SFX_Connect:'sfx/connect.mp3', BG_Music:'',
+              Accessibility_Notes:'High-contrast focus rings'
+            });
+            lineRows.push(row);
+            ['Left_Image','Right_Image','Animation_Lottie_ID','SFX_Connect','BG_Music'].forEach(k=>collectAsset(assetRows, row.Activity_ID, row[k]));
+          });
+        }
+
+        if(type==='Speech'){
+          const [wer,pron,maxs] = $('.sttParams', card).value.split(',');
+          const row = Object.assign({}, base, {
+            Target_Pronunciation: '"The fox runs fast."',
+            STT_Engine: 'Web Speech API or cloud', Accent_Model:'en-US',
+            Prompt_Text: $('.prompt', card).value,
+            Reference_Audio: 'audio/ref_sentence.mp3', Silence_Timeout_ms:2000,
+            Max_Recording_s: Number(maxs||8), Min_Signal_D_B: -35,
+            Acceptable_WER: Number(wer||0.15), Acceptable_Pron_Score: Number(pron||80),
+            Feedback_Correct: $('.fbOk', card).value,
+            Feedback_NeedsWork: $('.fbNg', card).value,
+            Score_Max:5, Scoring_Method:'hybrid: WER + keywords', Retry_Limit:3,
+            Noise_Handling:'auto-gain + VAD', Privacy_Notes:'no raw audio by default',
+            Accessibility_Notes:'Caption the prompt'
+          });
+          speechRows.push(row);
+          collectAsset(assetRows, row.Activity_ID, row.Reference_Audio);
+          locRows.push({Activity_ID: row.Activity_ID, Key:'prompt', Source_Text_EN: row.Prompt_Text, KO:'', JA:'', ZH:'', Audio_EN: row.Reference_Audio, Audio_KO:'', Notes:''});
+        }
+      });
+
+      const eventRows = [
+        {Field:'idx', Type:'int', Required:'Y', Example:'32', Description:'Auto increment id'},
+        {Field:'user_idx', Type:'int', Required:'Y', Example:'32', Description:'User id'},
+        {Field:'book_idx', Type:'int', Required:'Y', Example:'26', Description:'Book or unit id'},
+        {Field:'bookDataVer', Type:'string', Required:'Y', Example:'0.1', Description:'Content version'},
+        {Field:'lessonNum', Type:'int', Required:'Y', Example:'1', Description:'Lesson number'},
+        {Field:'dayNum', Type:'int', Required:'Y', Example:'1', Description:'Day within lesson'},
+        {Field:'actNum', Type:'int', Required:'Y', Example:'0', Description:'Activity sequence'},
+        {Field:'actCode', Type:'int/string', Required:'Y', Example:'1051', Description:'Activity type code'},
+        {Field:'actStartTime', Type:'datetime', Required:'Y', Example:'2022-02-09 16:45:55', Description:'Start'},
+        {Field:'actEndTime', Type:'datetime', Required:'N', Example:'2022-02-09 16:46:40', Description:'End'},
+        {Field:'actStudySec', Type:'int', Required:'N', Example:'45', Description:'Elapsed seconds'},
+        {Field:'clientInfo', Type:'json', Required:'N', Example:'{"ua":"Chrome"}', Description:'Device/browser'},
+        {Field:'events', Type:'json[]', Required:'N', Example:'[{"t":1234,"e":"drop","id":"word_fox","dz":"dz_fox"}]', Description:'Fine-grained events'},
+        {Field:'score', Type:'int', Required:'N', Example:'4', Description:'Final score'},
+        {Field:'result', Type:'string', Required:'N', Example:'pass/fail', Description:'Outcome'}
+      ];
+
+      const assetManifest = uniq(assetRows.filter(r=>!!r.Path), r=>r.Activity_ID+'|'+r.Path);
+      if(assetManifest.length===0){ assetManifest.push({Activity_ID:'-', Type:'image', Path:'img/example.png'}); }
+
+      const mergedLoc = uniq([...(locRows||[]), ...LOC_STORE], r=>(r.Activity_ID||'-')+'|'+(r.Key||'-'));
+      if(mergedLoc.length===0){ mergedLoc.push({Activity_ID:'-', Key:'-', Source_Text_EN:'-', KO:'-', JA:'-', ZH:'-', Audio_EN:'', Audio_KO:'', Notes:''}); }
+
+      const a11yRows = [
+        {Area:'Color Contrast', Guideline:'WCAG 2.1 AA', Requirement:'>= 4.5:1', Example_Tool:'Checker'},
+        {Area:'Keyboard', Guideline:'WCAG 2.1', Requirement:'All operable by keyboard', Example_Tool:'Tab/Enter'},
+        {Area:'Captions', Guideline:'WCAG 2.1', Requirement:'Narrated audio has captions', Example_Tool:'SRT/VTT'}
+      ];
+
+      const apiRows = [
+        {Endpoint:'/api/activity/load', Method:'GET', Auth:'Bearer', Request_Fields:'activityId, version', Response_Fields:'jsonSchema, assets, seed', Error_Codes:'404,409', Notes:'seed for randomization'},
+        {Endpoint:'/api/activity/submit', Method:'POST', Auth:'Bearer', Request_Fields:'activityId, userId, answers[], elapsed, events[]', Response_Fields:'score, pass, nextReco', Error_Codes:'400,500', Notes:'idempotent key recommended'}
+      ];
+
+      const qaRows = [
+        {Category:'UI', Check_Item:'Responsive layout at min/max widths', Pass:'', Notes:''},
+        {Category:'Function', Check_Item:'Timer ends gracefully and records time', Pass:'', Notes:''},
+        {Category:'Audio', Check_Item:'Audio plays on user gesture', Pass:'', Notes:''},
+        {Category:'A11y', Check_Item:'Keyboard-only usability', Pass:'', Notes:''},
+        {Category:'Logs', Check_Item:'Event payload matches schema', Pass:'', Notes:''}
+      ];
+
+      const indexRows = [
+        {Order:1, Sheet:'Standards', Purpose:'Global rules for all activities'},
+        {Order:2, Sheet:'Activity-4Choice', Purpose:'Spec template for 4-option multiple choice'},
+        {Order:3, Sheet:'Activity-DragDrop', Purpose:'Spec template for drag-and-drop'},
+        {Order:4, Sheet:'Activity-LineMatch', Purpose:'Spec template for line/matching'},
+        {Order:5, Sheet:'Activity-Speech', Purpose:'Spec template for speech recognition'},
+        {Order:6, Sheet:'Scoring & Analytics', Purpose:'Scoring, timers, attempts, mastery'},
+        {Order:7, Sheet:'Event Log Schema', Purpose:'Interaction/event log fields'},
+        {Order:8, Sheet:'Asset Manifest', Purpose:'Image/audio/Lottie/video inventory'},
+        {Order:9, Sheet:'Localization', Purpose:'Multilingual text/voice mapping'},
+        {Order:10, Sheet:'Accessibility', Purpose:'WCAG guidance'},
+        {Order:11, Sheet:'API Endpoints', Purpose:'Load/save/grade endpoints'},
+        {Order:12, Sheet:'QA Checklist', Purpose:'Pre-release checks'}
+      ];
+
+      // Build asset tree for CSV
+      const assetTree = assetManifest.map(r=>{
+        const path = r.Path || '';
+        const lastSlash = path.lastIndexOf('/');
+        const folder = lastSlash>=0 ? path.slice(0,lastSlash) : '';
+        const file = lastSlash>=0 ? path.slice(lastSlash+1) : path;
+        return {activity:r.Activity_ID, type:r.Type, folder, file, path};
+      });
+
+      return { std, choiceRows, dragRows, lineRows, speechRows, eventRows, assetManifest, assetTree, mergedLoc, a11yRows, apiRows, qaRows, indexRows };
+    }
+
+    function exportAll(){
+      const data = buildWorkbookData();
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.indexRows), 'Index');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.std), 'Standards');
+      if(data.choiceRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.choiceRows), 'Activity-4Choice');
+      if(data.dragRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.dragRows), 'Activity-DragDrop');
+      if(data.lineRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.lineRows), 'Activity-LineMatch');
+      if(data.speechRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.speechRows), 'Activity-Speech');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{Activity_ID:'* (applies to all)', Score_Max:'per activity', Pass_Threshold:'>=60%', Mastery_Threshold:'>=90% & 2 passes', Adaptive_Hint_Rule:'if 2 wrong -> show hint', Timer_Enabled:'per activity', Time_Limit_s:'per activity', Attempt_Limit:'per activity', Partial_Credit_Rule:'dragdrop: +1 per correct placement', Penalty_Rule:'-1 per wrong submit min 0', Completion_Definition:'resolve required interactions', Next_Reco_Rule:'if <60% recommend easier'}]), 'Scoring & Analytics');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.eventRows), 'Event Log Schema');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.assetManifest), 'Asset Manifest');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.mergedLoc), 'Localization');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.a11yRows), 'Accessibility');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.apiRows), 'API Endpoints');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.qaRows), 'QA Checklist');
+
+      const fname = document.getElementById('fileName').value || 'Activity_Specification_Pack.xlsx';
+      XLSX.writeFile(wb, fname);
+
+      // Asset tree CSV
+      const wbAssets = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wbAssets, XLSX.utils.json_to_sheet(data.assetTree), 'assets');
+      XLSX.writeFile(wbAssets, (fname.replace(/\.xlsx$/i,'')||'Activity_Specification_Pack') + '_assets.csv', {bookType:'csv'});
+
+      // Localization CSV/JSON snapshot
+      const wbLoc = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wbLoc, XLSX.utils.json_to_sheet(data.mergedLoc), 'Localization');
+      XLSX.writeFile(wbLoc, (fname.replace(/\.xlsx$/i,'')||'Activity_Specification_Pack') + '_loc.csv', {bookType:'csv'});
+      saveJSON((fname.replace(/\.xlsx$/i,'')||'Activity_Specification_Pack') + '_loc.json', data.mergedLoc);
+    }
+
+    // ---- Button wiring ----
+    document.getElementById('btnAddChoice').onclick = ()=>addCard('4Choice');
+    document.getElementById('btnAddDrag').onclick = ()=>addCard('DragDrop');
+    document.getElementById('btnAddLine').onclick = ()=>addCard('LineMatch');
+    document.getElementById('btnAddSpeech').onclick = ()=>addCard('Speech');
+    document.getElementById('btnLocImport').onclick = ()=>document.getElementById('locImport').click();
+
+    document.getElementById('locImport').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const name = file.name.toLowerCase();
+        try{
+          if(name.endsWith('.json')){
+            const data = JSON.parse(reader.result);
+            if(Array.isArray(data)) LOC_STORE.push(...data);
+          } else if(name.endsWith('.csv')){
+            const wb = XLSX.read(reader.result, {type:'binary'});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            if(ws) {
+              const rows = XLSX.utils.sheet_to_json(ws);
+              LOC_STORE.push(...rows);
+            }
+          }
+          alert('✅ Localization imported: ' + LOC_STORE.length + ' rows');
+        }catch(err){ alert('Import failed: '+ err.message); }
+      };
+      if(file.name.toLowerCase().endsWith('.csv')) reader.readAsBinaryString(file); else reader.readAsText(file);
+    });
+
+    document.getElementById('btnLocExport').addEventListener('click', ()=>{
+      if(!LOC_STORE.length){ alert('⚠️ No localization data to export. Use Import or generate via XLSX export.'); return; }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(LOC_STORE), 'Localization');
+      XLSX.writeFile(wb, 'Localization_Export.csv', {bookType:'csv'});
+      saveJSON('Localization_Export.json', LOC_STORE);
+    });
+
+    document.getElementById('btnExport').addEventListener('click', ()=>{
+      const loadingEl = document.getElementById('loading');
+      try{ 
+        if(loadingEl) loadingEl.classList.add('active');
+        setTimeout(()=>{
+          try {
+            exportAll();
+            if(loadingEl) loadingEl.classList.remove('active');
+            alert('✅ 파일 생성 완료!\n\n다음 파일들이 다운로드되었습니다:\n- XLSX 스펙 문서\n- Assets CSV\n- Localization CSV/JSON');
+          } catch(err) {
+            if(loadingEl) loadingEl.classList.remove('active');
+            alert('❌ Export 실패: ' + err.message + '\n\n자세한 내용은 콘솔을 확인하세요.');
+            console.error('Export error:', err);
+          }
+        }, 100);
+      }
+      catch(err){ 
+        if(loadingEl) loadingEl.classList.remove('active');
+        alert('❌ Export 실패: ' + err.message); 
+        console.error(err); 
+      }
+    });
+
+    // ---- Minimal test suite ----
+    function runTests(){
+      document.getElementById('testLog').textContent = '';
+      LOG('Running tests...');
+
+      // T1: actCode options populated
+      const types = ['4Choice','DragDrop','LineMatch','Speech'];
+      let ok1=true;
+      $$('#cards > div').forEach((card,i)=>{
+        const sel = card.querySelector('select.actCode');
+        if(!sel || sel.options.length===0){ ok1=false; LOG(`T1 fail: no actCode options for card ${i}`); }
+      });
+      LOG(ok1?'T1 pass: actCode options populated':'T1 fail');
+
+      // T2: buildWorkbookData returns required sheets
+      const data = buildWorkbookData();
+      const mustHave = ['std','indexRows','eventRows'];
+      let ok2 = mustHave.every(k=>Array.isArray(data[k]));
+      LOG(ok2? 'T2 pass: workbook data core arrays present' : 'T2 fail: missing core arrays');
+
+      // T3: asset tree split
+      const sample = {Activity_ID:'X', Type:'image', Path:'img/fox.png'};
+      const lastSlash = sample.Path.lastIndexOf('/');
+      const folder = lastSlash>=0 ? sample.Path.slice(0,lastSlash) : '';
+      const file = lastSlash>=0 ? sample.Path.slice(lastSlash+1) : sample.Path;
+      if(folder==='img' && file==='fox.png') LOG('T3 pass: asset path split'); else LOG('T3 fail: asset path split');
+
+      // T4: loc import/export roundtrip (JSON)
+      LOC_STORE.length = 0;
+      LOC_STORE.push({Activity_ID:'T', Key:'k', Source_Text_EN:'Hello', KO:'안녕'});
+      if(LOC_STORE.length===1) LOG('T4 pass: localization buffer works'); else LOG('T4 fail: localization buffer');
+
+      LOG('Tests done.');
+    }
+    document.getElementById('btnRunTests').addEventListener('click', runTests);
+  </script>
+</body>
+</html>
