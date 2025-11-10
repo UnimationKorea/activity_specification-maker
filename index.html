@@ -160,16 +160,82 @@
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         <h2 class="text-lg font-semibold">Activities (액티비티 추가)</h2>
         <div class="flex flex-wrap gap-2">
+          <button id="btnImportActivity" class="btn btn-primary" aria-label="액티비티 Import">📥 Import Activity</button>
           <button id="btnAddChoice" class="btn btn-secondary" aria-label="4지선다 액티비티 추가">+ 4지선다</button>
           <button id="btnAddDrag" class="btn btn-secondary" aria-label="드래그드랍 액티비티 추가">+ 드래그드랍</button>
           <button id="btnAddLine" class="btn btn-secondary" aria-label="선긋기 액티비티 추가">+ 선긋기</button>
           <button id="btnAddSpeech" class="btn btn-secondary" aria-label="음성인식 액티비티 추가">+ 음성인식</button>
         </div>
       </div>
-      <p class="text-sm text-gray-500 mt-2">각 카드의 필드를 채운 뒤, 아래의 "XLSX 생성"을 클릭하세요. 예시 데이터가 자동으로 채워집니다(필요 시 수정).</p>
+      <p class="text-sm text-gray-500 mt-2">
+        <strong>📥 Import:</strong> JSON, XLSX 파일 또는 URL에서 액티비티를 불러올 수 있습니다. |
+        <strong>➕ 추가:</strong> 각 카드의 필드를 채운 뒤, 아래의 "XLSX 생성"을 클릭하세요.
+      </p>
 
       <div id="cards" class="mt-4 grid grid-cols-1 gap-4"></div>
+      
+      <!-- Hidden file input for activity import -->
+      <input id="activityImport" type="file" accept=".json,.xlsx,.xls" class="hidden" />
     </section>
+
+    <!-- Import Activity Modal -->
+    <div id="importModal" class="loading" style="background: rgba(0,0,0,0.7);">
+      <div class="card" style="max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">📥 Import Activity</h3>
+          <button id="btnCloseModal" class="btn btn-secondary">✕ 닫기</button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- Method Selection -->
+          <div>
+            <label class="label">Import 방법 선택</label>
+            <div class="flex gap-2">
+              <button id="btnImportFile" class="btn btn-primary flex-1">📁 파일에서 가져오기</button>
+              <button id="btnImportURL" class="btn btn-secondary flex-1">🌐 URL에서 가져오기</button>
+            </div>
+          </div>
+          
+          <!-- URL Import Section -->
+          <div id="urlImportSection" style="display: none;">
+            <label class="label">Activity URL 또는 JSON URL</label>
+            <input id="activityURL" class="input" placeholder="https://example.com/activity.json" />
+            <button id="btnFetchURL" class="btn btn-primary mt-2">🔄 URL에서 불러오기</button>
+          </div>
+          
+          <!-- Import Preview -->
+          <div id="importPreview" style="display: none;">
+            <label class="label">Import 미리보기</label>
+            <div class="border rounded p-3 bg-gray-50 max-h-60 overflow-y-auto">
+              <pre id="previewContent" class="text-xs"></pre>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <button id="btnConfirmImport" class="btn btn-primary flex-1">✅ Import 확정</button>
+              <button id="btnCancelImport" class="btn btn-secondary flex-1">❌ 취소</button>
+            </div>
+          </div>
+          
+          <!-- Instructions -->
+          <details class="text-sm text-gray-600">
+            <summary class="cursor-pointer font-medium">📖 Import 가능한 형식</summary>
+            <ul class="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>JSON 파일:</strong> Activity 데이터가 포함된 JSON 파일</li>
+              <li><strong>XLSX 파일:</strong> 기존에 생성된 스펙 문서</li>
+              <li><strong>URL:</strong> JSON 또는 Activity API 엔드포인트</li>
+            </ul>
+            <p class="mt-2"><strong>JSON 형식 예시:</strong></p>
+            <pre class="bg-gray-800 text-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">{
+  "Activity_ID": "MC4-0001",
+  "Title": "Find the Animal",
+  "Activity_Type": "4Choice",
+  "Grade_Level": "G1~G3",
+  "Language": "EN",
+  ...
+}</pre>
+          </details>
+        </div>
+      </div>
+    </div>
 
     <!-- Export & Advanced -->
     <section class="card">
@@ -662,12 +728,213 @@
       saveJSON((fname.replace(/\.xlsx$/i,'')||'Activity_Specification_Pack') + '_loc.json', data.mergedLoc);
     }
 
+    // ---- Activity Import Functions ----
+    let importedActivityData = null;
+
+    function showModal() {
+      document.getElementById('importModal').classList.add('active');
+    }
+
+    function hideModal() {
+      document.getElementById('importModal').classList.remove('active');
+      document.getElementById('urlImportSection').style.display = 'none';
+      document.getElementById('importPreview').style.display = 'none';
+      document.getElementById('activityURL').value = '';
+      document.getElementById('previewContent').textContent = '';
+      importedActivityData = null;
+    }
+
+    function detectActivityType(data) {
+      // Detect activity type from data structure
+      if (data.Question_Text || data.Option_A_Text) return '4Choice';
+      if (data.Drag_Mode || data.Item_ID) return 'DragDrop';
+      if (data.Line_Style || data.Left_Node_ID) return 'LineMatch';
+      if (data.Target_Pronunciation || data.STT_Engine) return 'Speech';
+      if (data.Activity_Type) return data.Activity_Type;
+      return '4Choice'; // default
+    }
+
+    function importActivityToCard(data) {
+      const type = detectActivityType(data);
+      addCard(type);
+      
+      const cards = $$('#cards > div');
+      const card = cards[cards.length - 1];
+      
+      // Fill common fields
+      if (data.Activity_ID) $('.activityId', card).value = data.Activity_ID;
+      if (data.Title) $('.title', card).value = data.Title;
+      if (data.Grade_Level) $('.grade', card).value = data.Grade_Level;
+      if (data.Language) $('.lang', card).value = data.Language;
+      if (data.Duration_s) $('.duration', card).value = data.Duration_s;
+      if (data.Act_Code) $('.actCode', card).value = data.Act_Code;
+      if (data.Level) $('.level', card).value = data.Level;
+      if (data.Difficulty) $('.difficulty', card).value = data.Difficulty;
+
+      // Fill type-specific fields
+      if (type === '4Choice') {
+        if (data.Question_Text) $('.qtext', card).value = data.Question_Text;
+        if (data.Has_Timer !== undefined && data.Time_Limit_s) {
+          $('.timer', card).value = `${data.Has_Timer},${data.Time_Limit_s}`;
+        }
+        ['A','B','C','D'].forEach((k, i) => {
+          const text = data[`Option_${k}_Text`] || '';
+          const image = data[`Option_${k}_Image`] || '';
+          const audio = data[`Option_${k}_Audio`] || '';
+          const correct = data[`Option_${k}_isCorrect`] || false;
+          const optInput = $(`.opt${k}`, card);
+          if (optInput) optInput.value = `${text},${image},${audio},${correct}`;
+        });
+        if (data.Feedback_Correct) $('.fbOk', card).value = data.Feedback_Correct;
+        if (data.Feedback_Incorrect) $('.fbNg', card).value = data.Feedback_Incorrect;
+      }
+
+      if (type === 'DragDrop') {
+        if (data.Drag_Mode) $('.dragMode', card).value = data.Drag_Mode;
+        if (data.Drop_Strategy && data.Snap_Tolerance_px) {
+          $('.dropSnap', card).value = `${data.Drop_Strategy},${data.Snap_Tolerance_px}`;
+        }
+        if (data.Feedback_Correct) $('.fbOk', card).value = data.Feedback_Correct;
+        if (data.Feedback_Incorrect) $('.fbNg', card).value = data.Feedback_Incorrect;
+      }
+
+      if (type === 'LineMatch') {
+        if (data.Line_Style && data.Line_Width_px && data.Line_Color_Token) {
+          $('.lineStyle', card).value = `${data.Line_Style},${data.Line_Width_px},${data.Line_Color_Token}`;
+        }
+        if (data.Feedback_Correct) $('.fbOk', card).value = data.Feedback_Correct;
+        if (data.Feedback_Incorrect) $('.fbNg', card).value = data.Feedback_Incorrect;
+      }
+
+      if (type === 'Speech') {
+        if (data.Prompt_Text) $('.prompt', card).value = data.Prompt_Text;
+        if (data.Acceptable_WER && data.Acceptable_Pron_Score && data.Max_Recording_s) {
+          $('.sttParams', card).value = `${data.Acceptable_WER},${data.Acceptable_Pron_Score},${data.Max_Recording_s}`;
+        }
+        if (data.Feedback_Correct) $('.fbOk', card).value = data.Feedback_Correct;
+        if (data.Feedback_NeedsWork) $('.fbNg', card).value = data.Feedback_NeedsWork;
+      }
+
+      LOG(`✅ Activity imported: ${data.Activity_ID || 'Unknown'} (${type})`);
+    }
+
+    function processImportedData(data) {
+      // Handle array of activities
+      if (Array.isArray(data)) {
+        data.forEach(activity => importActivityToCard(activity));
+        alert(`✅ ${data.length}개의 액티비티를 성공적으로 import했습니다!`);
+      } else {
+        importActivityToCard(data);
+        alert('✅ 액티비티를 성공적으로 import했습니다!');
+      }
+      hideModal();
+    }
+
     // ---- Button wiring ----
     document.getElementById('btnAddChoice').onclick = ()=>addCard('4Choice');
     document.getElementById('btnAddDrag').onclick = ()=>addCard('DragDrop');
     document.getElementById('btnAddLine').onclick = ()=>addCard('LineMatch');
     document.getElementById('btnAddSpeech').onclick = ()=>addCard('Speech');
     document.getElementById('btnLocImport').onclick = ()=>document.getElementById('locImport').click();
+
+    // Import Activity Modal
+    document.getElementById('btnImportActivity').onclick = showModal;
+    document.getElementById('btnCloseModal').onclick = hideModal;
+    
+    document.getElementById('btnImportFile').onclick = ()=>{
+      document.getElementById('activityImport').click();
+    };
+    
+    document.getElementById('btnImportURL').onclick = ()=>{
+      const urlSection = document.getElementById('urlImportSection');
+      urlSection.style.display = urlSection.style.display === 'none' ? 'block' : 'none';
+    };
+
+    document.getElementById('activityImport').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = () => {
+        const name = file.name.toLowerCase();
+        try {
+          let data;
+          if (name.endsWith('.json')) {
+            data = JSON.parse(reader.result);
+          } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+            const wb = XLSX.read(reader.result, {type:'binary'});
+            // Try to find activity sheets
+            const activitySheets = wb.SheetNames.filter(s => s.startsWith('Activity-'));
+            if (activitySheets.length > 0) {
+              data = [];
+              activitySheets.forEach(sheetName => {
+                const ws = wb.Sheets[sheetName];
+                if (ws) {
+                  const rows = XLSX.utils.sheet_to_json(ws);
+                  data.push(...rows);
+                }
+              });
+            } else {
+              throw new Error('XLSX 파일에서 Activity 시트를 찾을 수 없습니다.');
+            }
+          }
+          
+          if (data) {
+            importedActivityData = data;
+            document.getElementById('previewContent').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('importPreview').style.display = 'block';
+          }
+        } catch (err) {
+          alert('❌ Import 실패: ' + err.message);
+          console.error('Import error:', err);
+        }
+      };
+      
+      if (file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+        reader.readAsBinaryString(file);
+      } else {
+        reader.readAsText(file);
+      }
+    });
+
+    document.getElementById('btnFetchURL').addEventListener('click', async ()=>{
+      const url = document.getElementById('activityURL').value.trim();
+      if (!url) {
+        alert('⚠️ URL을 입력해주세요.');
+        return;
+      }
+      
+      try {
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.classList.add('active');
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        
+        const data = await response.json();
+        importedActivityData = data;
+        document.getElementById('previewContent').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('importPreview').style.display = 'block';
+        
+        if (loadingEl) loadingEl.classList.remove('active');
+      } catch (err) {
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.classList.remove('active');
+        alert('❌ URL에서 데이터를 가져오는데 실패했습니다:\n\n' + err.message);
+        console.error('Fetch error:', err);
+      }
+    });
+
+    document.getElementById('btnConfirmImport').onclick = ()=>{
+      if (importedActivityData) {
+        processImportedData(importedActivityData);
+      }
+    };
+
+    document.getElementById('btnCancelImport').onclick = ()=>{
+      document.getElementById('importPreview').style.display = 'none';
+      importedActivityData = null;
+    };
 
     document.getElementById('locImport').addEventListener('change', (e)=>{
       const file = e.target.files[0];
