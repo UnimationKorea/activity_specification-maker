@@ -688,7 +688,10 @@
             }
           }
           alert('✅ Localization imported: ' + LOC_STORE.length + ' rows');
-        }catch(err){ alert('Import failed: '+ err.message); }
+        }catch(err){ 
+          alert('❌ Import failed: '+ err.message + '\n\n파일 형식을 확인하세요 (CSV/JSON).'); 
+          console.error('Import error:', err);
+        }
       };
       if(file.name.toLowerCase().endsWith('.csv')) reader.readAsBinaryString(file); else reader.readAsText(file);
     });
