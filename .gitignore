@@ -1,0 +1,9 @@
+
+# Test files
+test_*.html
+test_*.js
+
+# Node modules and package files
+node_modules/
+package-lock.json
+package.json

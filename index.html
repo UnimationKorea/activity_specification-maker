@@ -51,107 +51,8 @@
         <h2 class="text-lg font-semibold">Standards (공통 표준)</h2>
         <span class="tag">Required</span>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div>
-          <label class="label">Project</label>
-          <input class="input" id="stdProject" value="자체 프로젝트 (EduCore)"/>
-        </div>
-        <div>
-          <label class="label">Activity Family</label>
-          <input class="input" id="stdFamily" value="Core-Interactive"/>
-        </div>
-        <div>
-          <label class="label">Spec Version</label>
-          <input class="input" id="stdVersion" value="1.1"/>
-        </div>
-        <div>
-          <label class="label">Author</label>
-          <input class="input" id="stdAuthor" value="Content Engineering"/>
-        </div>
-        <div>
-          <label class="label">Date (YYYY-MM-DD)</label>
-          <input class="input" id="stdDate" />
-        </div>
-        <div>
-          <label class="label">Target Devices</label>
-          <input class="input" id="stdDevices" value="Desktop/Tablet/Mobile"/>
-        </div>
-        <div>
-          <label class="label">Browser Support</label>
-          <input class="input" id="stdBrowsers" value="Chrome 120+, Edge 120+, Safari 17+"/>
-        </div>
-        <div>
-          <label class="label">Min Resolution</label>
-          <input class="input" id="stdRes" value="1280x720 (desktop), 1024x600 (tablet), 360x640 (mobile)"/>
-        </div>
-        <div>
-          <label class="label">Orientation</label>
-          <input class="input" id="stdOrient" value="Auto; lock when critical"/>
-        </div>
-        <div>
-          <label class="label">Design System</label>
-          <input class="input" id="stdDesign" value="Tailwind + shadcn/ui tokens"/>
-        </div>
-        <div>
-          <label class="label">Primary Font</label>
-          <input class="input" id="stdFont" value="Noto Sans KR"/>
-        </div>
-        <div>
-          <label class="label">Fallback Fonts</label>
-          <input class="input" id="stdFallback" value="Arial, Helvetica, sans-serif"/>
-        </div>
-        <div>
-          <label class="label">Base Unit (px)</label>
-          <input class="input" id="stdBase" value="4"/>
-        </div>
-        <div>
-          <label class="label">Color Tokens</label>
-          <input class="input" id="stdColors" value="primary, secondary, success, warn, error"/>
-        </div>
-        <div>
-          <label class="label">Audio Format</label>
-          <input class="input" id="stdAudio" value="mp3 (192kbps) + ogg fallback"/>
-        </div>
-        <div>
-          <label class="label">Image Format</label>
-          <input class="input" id="stdImage" value="webp preferred, png for alpha"/>
-        </div>
-        <div>
-          <label class="label">Lottie Version</label>
-          <input class="input" id="stdLottie" value="5.7+"/>
-        </div>
-        <div>
-          <label class="label">Video Format</label>
-          <input class="input" id="stdVideo" value="mp4 (H.264), webm fallback"/>
-        </div>
-        <div>
-          <label class="label">Frame Rate</label>
-          <input class="input" id="stdFPS" value="60"/>
-        </div>
-        <div>
-          <label class="label">Max Package Size (MB)</label>
-          <input class="input" id="stdMaxSize" value="10"/>
-        </div>
-        <div>
-          <label class="label">Performance Budget</label>
-          <input class="input" id="stdPerf" value="TTI < 2.5s on 3G Fast; 60fps anim"/>
-        </div>
-        <div>
-          <label class="label">Offline Support</label>
-          <input class="input" id="stdOffline" value="Service Worker optional"/>
-        </div>
-        <div>
-          <label class="label">Network Retry Policy</label>
-          <input class="input" id="stdRetry" value="3 retries, exp backoff"/>
-        </div>
-        <div>
-          <label class="label">Security Notes</label>
-          <input class="input" id="stdSec" value="No PII in logs; signed URLs for assets"/>
-        </div>
-        <div>
-          <label class="label">Versioning Rule</label>
-          <input class="input" id="stdSemver" value="Semantic: major.minor.patch"/>
-        </div>
+      <div id="standardsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <!-- Standards fields will be dynamically generated -->
       </div>
     </section>
 
@@ -330,6 +231,94 @@
     const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
     const LOG = (msg) => { const el = document.getElementById('testLog'); if(el){ el.textContent += (msg + '\n'); } };
 
+    // ---- Dropdown Options Database ----
+    const DROPDOWN_OPTIONS = {
+      stdProject: ['자체 프로젝트 (EduCore)', 'LMS 프로젝트', '외부 프로젝트', '파트너 프로젝트'],
+      stdFamily: ['Core-Interactive', 'Core-Assessment', 'Core-Reading', 'Core-Math', 'Advanced-Lab'],
+      stdVersion: ['1.0', '1.1', '1.2', '2.0'],
+      stdAuthor: ['Content Engineering', 'Product Team', 'Design Team', 'External Partner'],
+      stdDevices: ['Desktop/Tablet/Mobile', 'Desktop only', 'Mobile only', 'Tablet/Mobile'],
+      stdBrowsers: ['Chrome 120+, Edge 120+, Safari 17+', 'Chrome 100+, Edge 100+, Safari 15+', 'Modern browsers only'],
+      stdRes: ['1280x720 (desktop), 1024x600 (tablet), 360x640 (mobile)', '1920x1080 (desktop), 1024x768 (tablet)', '1024x768 minimum'],
+      stdOrient: ['Auto; lock when critical', 'Portrait only', 'Landscape only', 'Auto (no lock)'],
+      stdDesign: ['Tailwind + shadcn/ui tokens', 'Material Design', 'Bootstrap', 'Custom Design System'],
+      stdFont: ['Noto Sans KR', 'Roboto', 'Open Sans', 'Pretendard', 'Spoqa Han Sans Neo'],
+      stdFallback: ['Arial, Helvetica, sans-serif', 'system-ui, sans-serif', 'Georgia, serif'],
+      stdBase: ['4', '8', '16'],
+      stdColors: ['primary, secondary, success, warn, error', 'primary, secondary, tertiary', 'brand, neutral, semantic'],
+      stdAudio: ['mp3 (192kbps) + ogg fallback', 'mp3 (128kbps)', 'aac (256kbps)', 'm4a preferred'],
+      stdImage: ['webp preferred, png for alpha', 'png only', 'jpg for photos, png for graphics', 'svg preferred'],
+      stdLottie: ['5.7+', '5.0+', '4.0+', 'Not used'],
+      stdVideo: ['mp4 (H.264), webm fallback', 'mp4 only', 'webm only', 'hls streaming'],
+      stdFPS: ['60', '30', '24', '120'],
+      stdMaxSize: ['10', '5', '20', '50', '100'],
+      stdPerf: ['TTI < 2.5s on 3G Fast; 60fps anim', 'TTI < 1.5s; 60fps', 'TTI < 3s; 30fps', 'No specific budget'],
+      stdOffline: ['Service Worker optional', 'Service Worker required', 'Full offline support', 'Online only'],
+      stdRetry: ['3 retries, exp backoff', '5 retries, linear', 'No retry', '3 retries, fixed delay'],
+      stdSec: ['No PII in logs; signed URLs for assets', 'Full encryption', 'OAuth 2.0 required', 'Public access'],
+      stdSemver: ['Semantic: major.minor.patch', 'Date-based: YYYY.MM.DD', 'Sequential: v1, v2, v3']
+    };
+
+    // ---- Smart Input: Dropdown + Custom Input ----
+    function createSmartInput(id, defaultValue, options) {
+      const container = document.createElement('div');
+      container.className = 'relative';
+      
+      // Create select dropdown
+      const select = document.createElement('select');
+      select.className = 'input pr-8';
+      select.id = id + '_select';
+      
+      // Add predefined options
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        if (opt === defaultValue) option.selected = true;
+        select.appendChild(option);
+      });
+      
+      // Add "직접 입력" option
+      const customOption = document.createElement('option');
+      customOption.value = '__custom__';
+      customOption.textContent = '✏️ 직접 입력...';
+      select.appendChild(customOption);
+      
+      // Create hidden input for custom value
+      const input = document.createElement('input');
+      input.className = 'input mt-2';
+      input.id = id;
+      input.placeholder = '직접 입력하세요...';
+      input.style.display = 'none';
+      input.value = defaultValue;
+      
+      // Handle select change
+      select.addEventListener('change', (e) => {
+        if (e.target.value === '__custom__') {
+          input.style.display = 'block';
+          input.focus();
+        } else {
+          input.style.display = 'none';
+          input.value = e.target.value;
+        }
+      });
+      
+      // Handle custom input change
+      input.addEventListener('input', (e) => {
+        // Update hidden value
+      });
+      
+      container.appendChild(select);
+      container.appendChild(input);
+      
+      // Return object with getValue method
+      container.getValue = () => {
+        return select.value === '__custom__' ? input.value : select.value;
+      };
+      
+      return container;
+    }
+
     // ---- Global stores ----
     const LOC_STORE = []; // {Activity_ID, Key, Source_Text_EN, KO, JA, ZH, Audio_EN, Audio_KO, Notes}
 
@@ -353,9 +342,73 @@
       ]
     };
 
-    // ---- Defaults ----
-    const today = new Date().toISOString().slice(0,10);
-    document.getElementById('stdDate').value = today;
+    // ---- Initialize Standards Fields ----
+    const STANDARDS_FIELDS = [
+      {id: 'stdProject', label: 'Project', default: '자체 프로젝트 (EduCore)'},
+      {id: 'stdFamily', label: 'Activity Family', default: 'Core-Interactive'},
+      {id: 'stdVersion', label: 'Spec Version', default: '1.1'},
+      {id: 'stdAuthor', label: 'Author', default: 'Content Engineering'},
+      {id: 'stdDate', label: 'Date (YYYY-MM-DD)', default: '', type: 'date'},
+      {id: 'stdDevices', label: 'Target Devices', default: 'Desktop/Tablet/Mobile'},
+      {id: 'stdBrowsers', label: 'Browser Support', default: 'Chrome 120+, Edge 120+, Safari 17+'},
+      {id: 'stdRes', label: 'Min Resolution', default: '1280x720 (desktop), 1024x600 (tablet), 360x640 (mobile)'},
+      {id: 'stdOrient', label: 'Orientation', default: 'Auto; lock when critical'},
+      {id: 'stdDesign', label: 'Design System', default: 'Tailwind + shadcn/ui tokens'},
+      {id: 'stdFont', label: 'Primary Font', default: 'Noto Sans KR'},
+      {id: 'stdFallback', label: 'Fallback Fonts', default: 'Arial, Helvetica, sans-serif'},
+      {id: 'stdBase', label: 'Base Unit (px)', default: '4'},
+      {id: 'stdColors', label: 'Color Tokens', default: 'primary, secondary, success, warn, error'},
+      {id: 'stdAudio', label: 'Audio Format', default: 'mp3 (192kbps) + ogg fallback'},
+      {id: 'stdImage', label: 'Image Format', default: 'webp preferred, png for alpha'},
+      {id: 'stdLottie', label: 'Lottie Version', default: '5.7+'},
+      {id: 'stdVideo', label: 'Video Format', default: 'mp4 (H.264), webm fallback'},
+      {id: 'stdFPS', label: 'Frame Rate', default: '60'},
+      {id: 'stdMaxSize', label: 'Max Package Size (MB)', default: '10'},
+      {id: 'stdPerf', label: 'Performance Budget', default: 'TTI < 2.5s on 3G Fast; 60fps anim'},
+      {id: 'stdOffline', label: 'Offline Support', default: 'Service Worker optional'},
+      {id: 'stdRetry', label: 'Network Retry Policy', default: '3 retries, exp backoff'},
+      {id: 'stdSec', label: 'Security Notes', default: 'No PII in logs; signed URLs for assets'},
+      {id: 'stdSemver', label: 'Versioning Rule', default: 'Semantic: major.minor.patch'}
+    ];
+
+    function initStandardsFields() {
+      const grid = document.getElementById('standardsGrid');
+      const today = new Date().toISOString().slice(0,10);
+      
+      STANDARDS_FIELDS.forEach(field => {
+        const wrapper = document.createElement('div');
+        const label = document.createElement('label');
+        label.className = 'label';
+        label.textContent = field.label;
+        wrapper.appendChild(label);
+        
+        if (field.type === 'date') {
+          // Special handling for date field
+          const input = document.createElement('input');
+          input.type = 'date';
+          input.className = 'input';
+          input.id = field.id;
+          input.value = today;
+          wrapper.appendChild(input);
+        } else if (DROPDOWN_OPTIONS[field.id]) {
+          // Create smart dropdown
+          const smartInput = createSmartInput(field.id, field.default, DROPDOWN_OPTIONS[field.id]);
+          wrapper.appendChild(smartInput);
+        } else {
+          // Fallback to regular input
+          const input = document.createElement('input');
+          input.className = 'input';
+          input.id = field.id;
+          input.value = field.default;
+          wrapper.appendChild(input);
+        }
+        
+        grid.appendChild(wrapper);
+      });
+    }
+
+    // Initialize standards fields on load
+    initStandardsFields();
 
     const cardsEl = document.getElementById('cards');
     const tpl = document.getElementById('tpl-card');
