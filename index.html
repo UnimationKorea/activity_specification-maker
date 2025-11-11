@@ -40,7 +40,11 @@
   <header class="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <h1 class="text-xl font-bold">Activity Specification Pack Generator</h1>
-      <div class="text-sm text-gray-500">HTML5 · XLSX Export · v1.1</div>
+      <div class="flex items-center gap-2">
+        <button id="btnSaveProject" class="btn btn-primary text-sm" title="프로젝트 저장">💾 Save Project</button>
+        <button id="btnLoadProject" class="btn btn-secondary text-sm" title="프로젝트 불러오기">📂 Load Project</button>
+        <div class="text-sm text-gray-500">HTML5 · XLSX Export · v1.2</div>
+      </div>
     </div>
   </header>
 
@@ -221,6 +225,31 @@
           <input class="input adaptMaxAttempts" value="3"/>
         </div>
       </div>
+      
+      <!-- Activity Description -->
+      <div class="mt-3">
+        <label class="label">Activity Description (설명)</label>
+        <textarea class="input activityDescription" rows="3" placeholder="이 액티비티에 대한 자세한 설명을 입력하세요..."></textarea>
+      </div>
+      
+      <!-- Activity Design Reference -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="label">Figma Link (Optional)</label>
+          <input type="url" class="input activityFigmaLink" placeholder="https://www.figma.com/..."/>
+          <div class="activityFigmaPreview mt-2 border rounded-lg overflow-hidden hidden">
+            <iframe style="width:100%; height:200px; border:none;" loading="lazy"></iframe>
+          </div>
+        </div>
+        <div>
+          <label class="label">Design Image (Optional)</label>
+          <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" class="input activityImageUpload"/>
+          <div class="activityImagePreview mt-2 border rounded-lg overflow-hidden hidden">
+            <img style="width:100%; max-height:200px; object-fit:contain;" alt="Activity Design"/>
+          </div>
+        </div>
+      </div>
+      
       <div class="extra"></div>
     </div>
   </template>
@@ -344,6 +373,7 @@
 
     // ---- Initialize Standards Fields ----
     const STANDARDS_FIELDS = [
+      {id: 'stdProjectID', label: 'Project ID', default: '01_01_01_01', placeholder: 'company_seriesgroup_series_book (e.g., 01_01_01_01)'},
       {id: 'stdProject', label: 'Project', default: '자체 프로젝트 (EduCore)'},
       {id: 'stdFamily', label: 'Activity Family', default: 'Core-Interactive'},
       {id: 'stdVersion', label: 'Spec Version', default: '1.1'},
@@ -368,7 +398,9 @@
       {id: 'stdOffline', label: 'Offline Support', default: 'Service Worker optional'},
       {id: 'stdRetry', label: 'Network Retry Policy', default: '3 retries, exp backoff'},
       {id: 'stdSec', label: 'Security Notes', default: 'No PII in logs; signed URLs for assets'},
-      {id: 'stdSemver', label: 'Versioning Rule', default: 'Semantic: major.minor.patch'}
+      {id: 'stdSemver', label: 'Versioning Rule', default: 'Semantic: major.minor.patch'},
+      {id: 'stdFigmaLink', label: 'Figma Link (Optional)', default: '', type: 'url', placeholder: 'https://www.figma.com/...'},
+      {id: 'stdImageUpload', label: 'Design Image (Optional)', default: '', type: 'image'}
     ];
 
     function initStandardsFields() {
@@ -390,6 +422,72 @@
           input.id = field.id;
           input.value = today;
           wrapper.appendChild(input);
+        } else if (field.type === 'url') {
+          // URL field with preview
+          const input = document.createElement('input');
+          input.type = 'url';
+          input.className = 'input';
+          input.id = field.id;
+          input.placeholder = field.placeholder || 'https://...';
+          input.value = field.default;
+          wrapper.appendChild(input);
+          
+          // Preview container
+          const previewContainer = document.createElement('div');
+          previewContainer.id = field.id + '_preview';
+          previewContainer.className = 'mt-2 border rounded-lg overflow-hidden hidden';
+          previewContainer.innerHTML = '<iframe style="width:100%; height:300px; border:none;" loading="lazy"></iframe>';
+          wrapper.appendChild(previewContainer);
+          
+          // Add event listener for URL changes
+          input.addEventListener('blur', (e) => {
+            const url = e.target.value.trim();
+            if (url && url.includes('figma.com')) {
+              const iframe = previewContainer.querySelector('iframe');
+              // Convert Figma URL to embed format
+              const embedUrl = url.replace('figma.com/file/', 'figma.com/embed?embed_host=share&url=') + '?node-id=';
+              iframe.src = embedUrl;
+              previewContainer.classList.remove('hidden');
+            } else if (url) {
+              previewContainer.classList.add('hidden');
+            }
+          });
+        } else if (field.type === 'image') {
+          // Image upload field
+          const uploadContainer = document.createElement('div');
+          uploadContainer.className = 'space-y-2';
+          
+          const fileInput = document.createElement('input');
+          fileInput.type = 'file';
+          fileInput.accept = 'image/png,image/jpeg,image/jpg,image/webp';
+          fileInput.className = 'input';
+          fileInput.id = field.id;
+          uploadContainer.appendChild(fileInput);
+          
+          // Preview container
+          const previewContainer = document.createElement('div');
+          previewContainer.id = field.id + '_preview';
+          previewContainer.className = 'mt-2 border rounded-lg overflow-hidden hidden';
+          previewContainer.innerHTML = '<img style="width:100%; max-height:300px; object-fit:contain;" alt="Preview"/>';
+          uploadContainer.appendChild(previewContainer);
+          
+          // Add event listener for file upload
+          fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const img = previewContainer.querySelector('img');
+                img.src = event.target.result;
+                previewContainer.classList.remove('hidden');
+                // Store base64 in a data attribute
+                fileInput.setAttribute('data-image-base64', event.target.result);
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+          
+          wrapper.appendChild(uploadContainer);
         } else if (DROPDOWN_OPTIONS[field.id]) {
           // Create smart dropdown
           const smartInput = createSmartInput(field.id, field.default, DROPDOWN_OPTIONS[field.id]);
@@ -400,6 +498,7 @@
           input.className = 'input';
           input.id = field.id;
           input.value = field.default;
+          if (field.placeholder) input.placeholder = field.placeholder;
           wrapper.appendChild(input);
         }
         
@@ -501,6 +600,42 @@
           card.remove();
         }
       });
+      
+      // Add event listeners for new fields
+      const figmaLink = $('.activityFigmaLink', card);
+      const figmaPreview = $('.activityFigmaPreview', card);
+      if (figmaLink && figmaPreview) {
+        figmaLink.addEventListener('blur', (e) => {
+          const url = e.target.value.trim();
+          if (url && url.includes('figma.com')) {
+            const iframe = figmaPreview.querySelector('iframe');
+            const embedUrl = url.replace('figma.com/file/', 'figma.com/embed?embed_host=share&url=');
+            iframe.src = embedUrl;
+            figmaPreview.classList.remove('hidden');
+          } else {
+            figmaPreview.classList.add('hidden');
+          }
+        });
+      }
+      
+      const imageUpload = $('.activityImageUpload', card);
+      const imagePreview = $('.activityImagePreview', card);
+      if (imageUpload && imagePreview) {
+        imageUpload.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const img = imagePreview.querySelector('img');
+              img.src = event.target.result;
+              imagePreview.classList.remove('hidden');
+              imageUpload.setAttribute('data-image-base64', event.target.result);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+      
       cardsEl.appendChild(card);
     }
 
@@ -521,6 +656,284 @@
       URL.revokeObjectURL(a.href);
     }
 
+    // ---- Project Save/Load Functions ----
+    function generateProjectFileName() {
+      const projectID = $('#stdProjectID')?.value || '01_01_01_01';
+      const now = new Date();
+      const mmdd = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+      
+      // Check existing saves in localStorage
+      const existingKeys = Object.keys(localStorage).filter(k => k.startsWith('project_' + projectID + '_' + mmdd));
+      
+      let fileName = projectID + '_' + mmdd;
+      if (existingKeys.length > 0) {
+        // Find highest number
+        const nums = existingKeys.map(k => {
+          const match = k.match(/_(\d+)$/);
+          return match ? parseInt(match[1]) : 0;
+        });
+        const maxNum = Math.max(...nums, 0);
+        fileName += `(${String(maxNum + 1).padStart(2, '0')})`;
+      }
+      
+      return fileName;
+    }
+
+    function saveProject() {
+      try {
+        const projectData = {
+          version: '1.2',
+          savedAt: new Date().toISOString(),
+          standards: {},
+          activities: [],
+          localizationData: LOC_STORE
+        };
+        
+        // Save all standards fields
+        STANDARDS_FIELDS.forEach(field => {
+          const el = document.getElementById(field.id);
+          if (el) {
+            if (field.type === 'image') {
+              projectData.standards[field.id] = el.getAttribute('data-image-base64') || '';
+            } else {
+              projectData.standards[field.id] = el.value || '';
+            }
+          }
+        });
+        
+        // Save all activity cards
+        const cards = document.querySelectorAll('#cards > div');
+        cards.forEach(card => {
+          const activity = {
+            type: card.querySelector('.type')?.textContent,
+            title: card.querySelector('.title')?.value,
+            activityId: card.querySelector('.activityId')?.value,
+            actCode: card.querySelector('.actCode')?.value,
+            grade: card.querySelector('.grade')?.value,
+            lang: card.querySelector('.lang')?.value,
+            duration: card.querySelector('.duration')?.value,
+            level: card.querySelector('.level')?.value,
+            difficulty: card.querySelector('.difficulty')?.value,
+            adaptHintAfter: card.querySelector('.adaptHintAfter')?.value,
+            adaptTimeExtend: card.querySelector('.adaptTimeExtend')?.value,
+            adaptMaxAttempts: card.querySelector('.adaptMaxAttempts')?.value,
+            description: card.querySelector('.activityDescription')?.value,
+            figmaLink: card.querySelector('.activityFigmaLink')?.value,
+            designImage: card.querySelector('.activityImageUpload')?.getAttribute('data-image-base64') || '',
+            extraFields: {}
+          };
+          
+          // Save type-specific fields
+          const type = activity.type;
+          if (type === '4Choice') {
+            activity.extraFields.timer = card.querySelector('.timer')?.value;
+            activity.extraFields.qtext = card.querySelector('.qtext')?.value;
+            ['A','B','C','D'].forEach(k => {
+              activity.extraFields['opt'+k] = card.querySelector('.opt'+k)?.value;
+            });
+            activity.extraFields.fbOk = card.querySelector('.fbOk')?.value;
+            activity.extraFields.fbNg = card.querySelector('.fbNg')?.value;
+          } else if (type === 'DragDrop') {
+            activity.extraFields.dragLabels = card.querySelector('.dragLabels')?.value;
+            activity.extraFields.dragSlots = card.querySelector('.dragSlots')?.value;
+            activity.extraFields.fbOk = card.querySelector('.fbOk')?.value;
+            activity.extraFields.fbNg = card.querySelector('.fbNg')?.value;
+          } else if (type === 'LineMatch') {
+            activity.extraFields.leftItems = card.querySelector('.leftItems')?.value;
+            activity.extraFields.rightItems = card.querySelector('.rightItems')?.value;
+            activity.extraFields.fbOk = card.querySelector('.fbOk')?.value;
+            activity.extraFields.fbNg = card.querySelector('.fbNg')?.value;
+          } else if (type === 'Speech') {
+            activity.extraFields.prompt = card.querySelector('.prompt')?.value;
+            activity.extraFields.sttParams = card.querySelector('.sttParams')?.value;
+            activity.extraFields.fbOk = card.querySelector('.fbOk')?.value;
+            activity.extraFields.fbNg = card.querySelector('.fbNg')?.value;
+          }
+          
+          projectData.activities.push(activity);
+        });
+        
+        // Generate filename and save to localStorage
+        const fileName = generateProjectFileName();
+        const storageKey = 'project_' + fileName;
+        localStorage.setItem(storageKey, JSON.stringify(projectData));
+        localStorage.setItem('lastProjectKey', storageKey);
+        
+        alert(`프로젝트가 저장되었습니다!\n저장명: ${fileName}\n\n브라우저 localStorage에 저장되었으며,\n"Load Project"로 불러올 수 있습니다.`);
+        
+        // Also download as JSON for backup
+        saveJSON(fileName + '.json', projectData);
+        
+      } catch (error) {
+        console.error('Save project error:', error);
+        alert('프로젝트 저장 중 오류가 발생했습니다: ' + error.message);
+      }
+    }
+
+    function loadProject() {
+      try {
+        // Get all saved projects
+        const projectKeys = Object.keys(localStorage).filter(k => k.startsWith('project_'));
+        
+        if (projectKeys.length === 0) {
+          alert('저장된 프로젝트가 없습니다.');
+          return;
+        }
+        
+        // Show selection dialog
+        let message = '불러올 프로젝트를 선택하세요:\n\n';
+        projectKeys.forEach((key, idx) => {
+          const projectName = key.replace('project_', '');
+          message += `${idx + 1}. ${projectName}\n`;
+        });
+        message += '\n숫자를 입력하세요 (취소하려면 Cancel):';
+        
+        const selection = prompt(message);
+        if (!selection) return;
+        
+        const idx = parseInt(selection) - 1;
+        if (idx < 0 || idx >= projectKeys.length) {
+          alert('잘못된 선택입니다.');
+          return;
+        }
+        
+        const selectedKey = projectKeys[idx];
+        const projectData = JSON.parse(localStorage.getItem(selectedKey));
+        
+        // Load standards
+        STANDARDS_FIELDS.forEach(field => {
+          const el = document.getElementById(field.id);
+          if (el && projectData.standards[field.id] !== undefined) {
+            if (field.type === 'image') {
+              const base64 = projectData.standards[field.id];
+              if (base64) {
+                el.setAttribute('data-image-base64', base64);
+                const preview = document.getElementById(field.id + '_preview');
+                if (preview) {
+                  const img = preview.querySelector('img');
+                  if (img) {
+                    img.src = base64;
+                    preview.classList.remove('hidden');
+                  }
+                }
+              }
+            } else {
+              el.value = projectData.standards[field.id];
+            }
+          }
+        });
+        
+        // Clear existing activities
+        document.getElementById('cards').innerHTML = '';
+        
+        // Load activities
+        projectData.activities.forEach(activity => {
+          addCard(activity.type);
+          const card = document.querySelector('#cards > div:last-child');
+          
+          if (card) {
+            // Set basic fields
+            const title = card.querySelector('.title');
+            if (title) title.value = activity.title || '';
+            const activityId = card.querySelector('.activityId');
+            if (activityId) activityId.value = activity.activityId || '';
+            const actCode = card.querySelector('.actCode');
+            if (actCode) actCode.value = activity.actCode || '';
+            const grade = card.querySelector('.grade');
+            if (grade) grade.value = activity.grade || '';
+            const lang = card.querySelector('.lang');
+            if (lang) lang.value = activity.lang || '';
+            const duration = card.querySelector('.duration');
+            if (duration) duration.value = activity.duration || '';
+            const level = card.querySelector('.level');
+            if (level) level.value = activity.level || '';
+            const difficulty = card.querySelector('.difficulty');
+            if (difficulty) difficulty.value = activity.difficulty || '';
+            const adaptHintAfter = card.querySelector('.adaptHintAfter');
+            if (adaptHintAfter) adaptHintAfter.value = activity.adaptHintAfter || '';
+            const adaptTimeExtend = card.querySelector('.adaptTimeExtend');
+            if (adaptTimeExtend) adaptTimeExtend.value = activity.adaptTimeExtend || '';
+            const adaptMaxAttempts = card.querySelector('.adaptMaxAttempts');
+            if (adaptMaxAttempts) adaptMaxAttempts.value = activity.adaptMaxAttempts || '';
+            const description = card.querySelector('.activityDescription');
+            if (description) description.value = activity.description || '';
+            const figmaLink = card.querySelector('.activityFigmaLink');
+            if (figmaLink) figmaLink.value = activity.figmaLink || '';
+            
+            // Load design image
+            if (activity.designImage) {
+              const imageUpload = card.querySelector('.activityImageUpload');
+              const imagePreview = card.querySelector('.activityImagePreview');
+              if (imageUpload && imagePreview) {
+                imageUpload.setAttribute('data-image-base64', activity.designImage);
+                const img = imagePreview.querySelector('img');
+                if (img) {
+                  img.src = activity.designImage;
+                  imagePreview.classList.remove('hidden');
+                }
+              }
+            }
+            
+            // Load type-specific fields
+            const extra = activity.extraFields || {};
+            if (activity.type === '4Choice') {
+              const timer = card.querySelector('.timer');
+              if (timer) timer.value = extra.timer || '';
+              const qtext = card.querySelector('.qtext');
+              if (qtext) qtext.value = extra.qtext || '';
+              ['A','B','C','D'].forEach(k => {
+                const opt = card.querySelector('.opt'+k);
+                if (opt) opt.value = extra['opt'+k] || '';
+              });
+              const fbOk = card.querySelector('.fbOk');
+              if (fbOk) fbOk.value = extra.fbOk || '';
+              const fbNg = card.querySelector('.fbNg');
+              if (fbNg) fbNg.value = extra.fbNg || '';
+            } else if (activity.type === 'DragDrop') {
+              const dragLabels = card.querySelector('.dragLabels');
+              if (dragLabels) dragLabels.value = extra.dragLabels || '';
+              const dragSlots = card.querySelector('.dragSlots');
+              if (dragSlots) dragSlots.value = extra.dragSlots || '';
+              const fbOk = card.querySelector('.fbOk');
+              if (fbOk) fbOk.value = extra.fbOk || '';
+              const fbNg = card.querySelector('.fbNg');
+              if (fbNg) fbNg.value = extra.fbNg || '';
+            } else if (activity.type === 'LineMatch') {
+              const leftItems = card.querySelector('.leftItems');
+              if (leftItems) leftItems.value = extra.leftItems || '';
+              const rightItems = card.querySelector('.rightItems');
+              if (rightItems) rightItems.value = extra.rightItems || '';
+              const fbOk = card.querySelector('.fbOk');
+              if (fbOk) fbOk.value = extra.fbOk || '';
+              const fbNg = card.querySelector('.fbNg');
+              if (fbNg) fbNg.value = extra.fbNg || '';
+            } else if (activity.type === 'Speech') {
+              const prompt = card.querySelector('.prompt');
+              if (prompt) prompt.value = extra.prompt || '';
+              const sttParams = card.querySelector('.sttParams');
+              if (sttParams) sttParams.value = extra.sttParams || '';
+              const fbOk = card.querySelector('.fbOk');
+              if (fbOk) fbOk.value = extra.fbOk || '';
+              const fbNg = card.querySelector('.fbNg');
+              if (fbNg) fbNg.value = extra.fbNg || '';
+            }
+          }
+        });
+        
+        // Load localization data
+        if (projectData.localizationData) {
+          LOC_STORE.length = 0;
+          LOC_STORE.push(...projectData.localizationData);
+        }
+        
+        alert('프로젝트가 성공적으로 불러와졌습니다!');
+        
+      } catch (error) {
+        console.error('Load project error:', error);
+        alert('프로젝트 불러오기 중 오류가 발생했습니다: ' + error.message);
+      }
+    }
+
     const AUDIO_RE = /\.(mp3|ogg|wav)$/i;
     const IMG_RE   = /\.(png|jpg|jpeg|webp|svg)$/i;
     const LOTTIE_RE= /lottie.*\.json$/i;
@@ -538,6 +951,7 @@
     function buildWorkbookData(){
       // Standards row from form
       const std = [{
+        Project_ID: $('#stdProjectID').value,
         Project: $('#stdProject').value,
         Activity_Family: $('#stdFamily').value,
         Spec_Version: $('#stdVersion').value,
@@ -562,7 +976,9 @@
         Offline_Support: $('#stdOffline').value,
         Network_Retry_Policy: $('#stdRetry').value,
         Security_Notes: $('#stdSec').value,
-        Versioning_Rule: $('#stdSemver').value
+        Versioning_Rule: $('#stdSemver').value,
+        Figma_Link: $('#stdFigmaLink').value,
+        Design_Image: $('#stdImageUpload')?.getAttribute('data-image-base64') ? 'Attached' : 'None'
       }];
 
       const choiceRows=[]; const dragRows=[]; const lineRows=[]; const speechRows=[]; const assetRows=[]; let locRows=[];
@@ -578,7 +994,10 @@
           Act_Code: $('.actCode', card).value,
           Level: $('.level', card).value,
           Difficulty: $('.difficulty', card).value,
-          Adaptive_Hint_Rule: `if ${Number($('.adaptHintAfter', card).value||2)} wrong -> show hint; +${Number($('.adaptTimeExtend', card).value||0)}s time; maxAttempts ${Number($('.adaptMaxAttempts', card).value||3)}`
+          Adaptive_Hint_Rule: `if ${Number($('.adaptHintAfter', card).value||2)} wrong -> show hint; +${Number($('.adaptTimeExtend', card).value||0)}s time; maxAttempts ${Number($('.adaptMaxAttempts', card).value||3)}`,
+          Description: $('.activityDescription', card).value || '',
+          Figma_Link: $('.activityFigmaLink', card).value || '',
+          Design_Image: $('.activityImageUpload', card)?.getAttribute('data-image-base64') ? 'Attached' : 'None'
         };
 
         if(type==='4Choice'){
@@ -884,6 +1303,8 @@
     }
 
     // ---- Button wiring ----
+    document.getElementById('btnSaveProject').onclick = saveProject;
+    document.getElementById('btnLoadProject').onclick = loadProject;
     document.getElementById('btnAddChoice').onclick = ()=>addCard('4Choice');
     document.getElementById('btnAddDrag').onclick = ()=>addCard('DragDrop');
     document.getElementById('btnAddLine').onclick = ()=>addCard('LineMatch');
